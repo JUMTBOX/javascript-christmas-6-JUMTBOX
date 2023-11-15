@@ -67,12 +67,28 @@ describe("기능 테스트", () => {
 
     expectLogContains(getOutput(logSpy), expected);
   });
+
+  test("주문금액 10000원 미만 혜택 내역 없음 출력", async () => {
+    // given
+    const logSpy = getLogSpy();
+    mockQuestions(["15", "양송이수프-1,제로콜라-1"]);
+
+    // when
+    const app = new App();
+    await app.run();
+
+    // then
+    const expected = ["<혜택 내역>" + LINE_SEPARATOR + "없음"];
+
+    expectLogContains(getOutput(logSpy), expected);
+  });
 });
 
 describe("예외 테스트", () => {
   test("날짜 예외 테스트", async () => {
     // given
-    const INVALID_DATE_MESSAGE = "[ERROR] 유효하지 않은 날짜입니다. 다시 입력해 주세요.";
+    const INVALID_DATE_MESSAGE =
+      "[ERROR] 유효하지 않은 날짜입니다. 다시 입력해 주세요.";
     const INPUTS_TO_END = ["1", "해산물파스타-2"];
     const logSpy = getLogSpy();
     mockQuestions(["a", ...INPUTS_TO_END]);
@@ -82,12 +98,15 @@ describe("예외 테스트", () => {
     await app.run();
 
     // then
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(INVALID_DATE_MESSAGE));
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining(INVALID_DATE_MESSAGE)
+    );
   });
 
   test("주문 예외 테스트", async () => {
     // given
-    const INVALID_ORDER_MESSAGE = "[ERROR] 유효하지 않은 주문입니다. 다시 입력해 주세요.";
+    const INVALID_ORDER_MESSAGE =
+      "[ERROR] 유효하지 않은 주문입니다. 다시 입력해 주세요.";
     const INPUTS_TO_END = ["해산물파스타-2"];
     const logSpy = getLogSpy();
     mockQuestions(["3", "제로콜라-a", ...INPUTS_TO_END]);
@@ -97,6 +116,31 @@ describe("예외 테스트", () => {
     await app.run();
 
     // then
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(INVALID_ORDER_MESSAGE));
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining(INVALID_ORDER_MESSAGE)
+    );
+  });
+
+  test("음료만 주문시 예외 테스트", async () => {
+    const logSpy = getLogSpy();
+    mockQuestions(["3", "제로콜라-2,샴페인-3,레드와인-2"]);
+
+    const app = new App();
+    await app.run();
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"));
+  });
+
+  test.each([
+    [["3", "시저샐러드-10,티본스테이크-11"]],
+    [["2", "바비큐립-8,초코케이크-8,제로콜라-8"]],
+  ])("음식 주문 20개 초과 예외 테스트", async (inputs) => {
+    const logSpy = getLogSpy();
+    mockQuestions(inputs);
+
+    const app = new App();
+    await app.run();
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR]"));
   });
 });
